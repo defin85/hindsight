@@ -2195,6 +2195,13 @@ class MemoryEngine(MemoryEngineInterface):
                 return [], TokenUsage()
             return []
 
+        try:
+            bank_utils.validate_bank_id(bank_id)
+        except ValueError as e:
+            from hindsight_api.extensions import OperationValidationError
+
+            raise OperationValidationError(str(e), status_code=400) from e
+
         # Authenticate tenant and set schema in context (for fq_table())
         await self._authenticate_tenant(request_context)
 
@@ -2544,6 +2551,13 @@ class MemoryEngine(MemoryEngineInterface):
             - entities: Optional dict of entity states (if include_entities=True)
             - chunks: Optional dict of chunks (if include_chunks=True, independent of max_tokens)
         """
+        try:
+            bank_utils.validate_bank_id(bank_id)
+        except ValueError as e:
+            from hindsight_api.extensions import OperationValidationError
+
+            raise OperationValidationError(str(e), status_code=400) from e
+
         # Authenticate tenant and set schema in context (for fq_table())
         await self._authenticate_tenant(request_context)
 
@@ -5236,7 +5250,12 @@ class MemoryEngine(MemoryEngineInterface):
             ctx = BankReadContext(bank_id=bank_id, operation="get_bank_profile", request_context=request_context)
             await self._validate_operation(self._operation_validator.validate_bank_read(ctx))
         pool = await self._get_pool()
-        profile, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+        try:
+            profile, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+        except ValueError as e:
+            from hindsight_api.extensions import OperationValidationError
+
+            raise OperationValidationError(str(e), status_code=400) from e
 
         # Apply HINDSIGHT_API_DEFAULT_BANK_TEMPLATE to freshly-created banks. Done
         # before reading the resolved config below so the template's overrides
@@ -5497,6 +5516,13 @@ class MemoryEngine(MemoryEngineInterface):
                 "Reflect requires an LLM provider. Current provider is set to 'none'. "
                 "Set HINDSIGHT_API_LLM_PROVIDER to a real provider (e.g., openai, anthropic, gemini)."
             )
+
+        try:
+            bank_utils.validate_bank_id(bank_id)
+        except ValueError as e:
+            from hindsight_api.extensions import OperationValidationError
+
+            raise OperationValidationError(str(e), status_code=400) from e
 
         # Authenticate tenant and set schema in context (for fq_table())
         await self._authenticate_tenant(request_context)
@@ -8250,7 +8276,12 @@ class MemoryEngine(MemoryEngineInterface):
 
         # Ensure the bank row exists before inserting async_operations (which now has a FK).
         # Banks are created lazily on first retain, but the FK requires the row to exist first.
-        _, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+        try:
+            _, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+        except ValueError as e:
+            from hindsight_api.extensions import OperationValidationError
+
+            raise OperationValidationError(str(e), status_code=400) from e
         if created:
             await self._apply_default_bank_template(bank_id, request_context)
 

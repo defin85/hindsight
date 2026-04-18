@@ -51,6 +51,42 @@ cd hindsight-control-plane && npm run dev
 ./scripts/dev/start-docs.sh
 ```
 
+## Project Memory Runbook
+
+Use the local Hindsight API for repo memory, but write progress notes through the async retain path.
+
+### Session setup
+```bash
+export HINDSIGHT_URL=http://127.0.0.1:8889
+export HINDSIGHT_BANK="codex::$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")"
+```
+
+### Manual recall
+```bash
+QUERY="project conventions, setup, pitfalls, previous fixes" uv run --directory /home/egor/code/hindsight/hindsight-clients/python python -c 'from hindsight_client import Hindsight; import json, os; c=Hindsight(base_url=os.environ.get("HINDSIGHT_URL", "http://127.0.0.1:8889")); r=c.recall(bank_id=os.environ["HINDSIGHT_BANK"], query=os.environ["QUERY"], budget="mid"); print(json.dumps([x.text for x in (r.results or [])], ensure_ascii=False, indent=2)); c.close()'
+```
+
+### Manual async retain
+```bash
+CONTENT="Verified fix: ..." CONTEXT="learnings" uv run --directory /home/egor/code/hindsight/hindsight-clients/python python -c 'from hindsight_client import Hindsight; import json, os; c=Hindsight(base_url=os.environ.get("HINDSIGHT_URL", "http://127.0.0.1:8889")); r=c.retain_batch(bank_id=os.environ["HINDSIGHT_BANK"], items=[{"content": os.environ["CONTENT"], "context": os.environ.get("CONTEXT")}], retain_async=True); print(json.dumps({"operation_id": r.operation_id, "operation_ids": r.operation_ids}, ensure_ascii=False)); c.close()'
+```
+
+### Poll async retain status
+```bash
+OPERATION_ID="<paste-operation-id>" BANK_URI="$(jq -rn --arg v "$HINDSIGHT_BANK" '$v|@uri')" ; curl -sS "$HINDSIGHT_URL/v1/default/banks/$BANK_URI/operations/$OPERATION_ID" | jq
+```
+
+Use `status=completed` as the success signal for the retain itself. Observations and mental-model refresh can still continue as separate background operations after that.
+
+### Manual reflect
+```bash
+QUERY="What is the safest way to approach this task in this repo?" uv run --directory /home/egor/code/hindsight/hindsight-clients/python python -c 'from hindsight_client import Hindsight; import os; c=Hindsight(base_url=os.environ.get("HINDSIGHT_URL", "http://127.0.0.1:8889")); r=c.reflect(bank_id=os.environ["HINDSIGHT_BANK"], query=os.environ["QUERY"], budget="low"); print(r.text); c.close()'
+```
+
+### Deleted-bank verification caveat
+
+Do not verify deleted malformed banks via `/stats`. That endpoint auto-creates an empty bank row for a missing `bank_id`. Verify deletion through the bank listing instead.
+
 
 ### Generating Clients/OpenAPI
 ```bash

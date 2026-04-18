@@ -12,8 +12,10 @@ import logging
 import os
 import time
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -22,6 +24,16 @@ from hindsight_api.engine.response_models import LLMToolCall, LLMToolCallResult,
 from hindsight_api.metrics import get_metrics_collector
 
 logger = logging.getLogger(__name__)
+CODEX_DEFAULT_BASE_URL = "https://chatgpt.com/backend-api"
+CODEX_LB_API_KEY_ENV = "CODEX_LB_API_KEY"
+
+
+@dataclass(frozen=True)
+class CodexOAuthCredentials:
+    """OAuth credentials read from the Codex CLI auth file."""
+
+    access_token: str
+    account_id: str | None
 
 
 class CodexLLM(LLMInterface):
@@ -30,6 +42,11 @@ class CodexLLM(LLMInterface):
 
     Authenticates using ChatGPT Plus/Pro credentials stored in ~/.codex/auth.json
     and makes API calls to chatgpt.com/backend-api/codex/responses.
+
+    When a custom base URL is configured, the same request shape can also be sent
+    through a local Codex load balancer. That transport uses a separate bearer
+    token (`HINDSIGHT_API_LLM_API_KEY` or `CODEX_LB_API_KEY`) while preserving
+    the Codex OAuth metadata required by the upstream backend.
     """
 
     def __init__(
@@ -46,7 +63,9 @@ class CodexLLM(LLMInterface):
 
         # Load Codex OAuth credentials
         try:
-            self.access_token, self.account_id = self._load_codex_auth()
+            oauth_credentials = self._load_codex_auth()
+            self.access_token = oauth_credentials.access_token
+            self.account_id = oauth_credentials.account_id
             logger.info(f"Loaded Codex OAuth credentials for account: {self.account_id}")
         except Exception as e:
             raise RuntimeError(
@@ -60,7 +79,9 @@ class CodexLLM(LLMInterface):
 
         # Use ChatGPT backend API endpoint
         if not self.base_url:
-            self.base_url = "https://chatgpt.com/backend-api"
+            self.base_url = CODEX_DEFAULT_BASE_URL
+        self._uses_chatgpt_backend = self._is_chatgpt_backend(self.base_url)
+        self._request_bearer_token = self._resolve_request_bearer_token(api_key)
 
         # Normalize model name (strip openai/ prefix if present)
         if self.model.startswith("openai/"):
@@ -73,12 +94,9 @@ class CodexLLM(LLMInterface):
         # HTTP client for SSE streaming
         self._client = httpx.AsyncClient(timeout=120.0)
 
-    def _load_codex_auth(self) -> tuple[str, str]:
+    def _load_codex_auth(self) -> CodexOAuthCredentials:
         """
         Load OAuth credentials from ~/.codex/auth.json.
-
-        Returns:
-            Tuple of (access_token, account_id).
 
         Raises:
             FileNotFoundError: If auth file doesn't exist.
@@ -106,7 +124,72 @@ class CodexLLM(LLMInterface):
         if not access_token:
             raise ValueError("No access_token found in Codex auth file. Run 'codex auth login' again.")
 
-        return access_token, account_id
+        return CodexOAuthCredentials(access_token=access_token, account_id=account_id)
+
+    def _is_chatgpt_backend(self, base_url: str) -> bool:
+        """Detect the canonical ChatGPT backend versus a local Codex proxy."""
+        return urlparse(base_url).netloc == "chatgpt.com"
+
+    def _resolve_request_bearer_token(self, provided_api_key: str | None) -> str:
+        """
+        Choose the bearer token for HTTP transport.
+
+        Standard Codex requests authenticate directly against ChatGPT with the
+        OAuth access token. Local codex-lb deployments sit in front of that
+        backend and require their own API key, so prefer the explicit
+        Hindsight key (or CODEX_LB_API_KEY fallback) when a custom base URL is
+        configured.
+        """
+        if self._uses_chatgpt_backend:
+            return self.access_token
+
+        provided_token = (provided_api_key or "").strip()
+        if provided_token:
+            return provided_token
+
+        env_token = os.getenv(CODEX_LB_API_KEY_ENV, "").strip()
+        if env_token:
+            return env_token
+
+        return self.access_token
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build headers for either direct Codex or codex-lb transport."""
+        headers = {
+            "Authorization": f"Bearer {self._request_bearer_token}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+        }
+        if self.account_id:
+            headers["OpenAI-Account-ID"] = self.account_id
+        if self._uses_chatgpt_backend:
+            headers["Origin"] = "https://chatgpt.com"
+        return headers
+
+    def _responses_url(self) -> str:
+        """
+        Build the final Responses endpoint for direct Codex and local codex-lb.
+
+        Hindsight historically accepted the ChatGPT backend root
+        (`.../backend-api`) and appended `/codex/responses` itself. Local
+        codex-lb configs often already end in `/backend-api/codex`, so blindly
+        appending the old suffix would produce `/codex/codex/responses`.
+        """
+        normalized_base_url = self.base_url.rstrip("/")
+        if normalized_base_url.endswith("/codex/responses"):
+            return normalized_base_url
+        if normalized_base_url.endswith("/codex"):
+            return f"{normalized_base_url}/responses"
+        return f"{normalized_base_url}/codex/responses"
+
+    def _auth_failure_message(self) -> str:
+        """Return the most useful auth hint for the active transport."""
+        if self._request_bearer_token != self.access_token:
+            return (
+                "Codex authentication failed. The configured codex-lb token was rejected.\n"
+                "Set HINDSIGHT_API_LLM_API_KEY (or CODEX_LB_API_KEY) to a valid local transport token."
+            )
+        return "Codex authentication failed. Your OAuth token may have expired.\nRun 'codex auth login' to re-authenticate."
 
     def _map_reasoning_effort(self, effort: str) -> str:
         """
@@ -233,15 +316,8 @@ class CodexLLM(LLMInterface):
             "prompt_cache_key": str(uuid.uuid4()),
         }
 
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-            "OpenAI-Account-ID": self.account_id,
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            "Origin": "https://chatgpt.com",
-        }
-
-        url = f"{self.base_url}/codex/responses"
+        headers = self._build_headers()
+        url = self._responses_url()
         last_exception = None
 
         for attempt in range(max_retries + 1):
@@ -335,10 +411,7 @@ class CodexLLM(LLMInterface):
                 # Fast fail on auth errors
                 if status_code in (401, 403):
                     logger.error(f"Codex auth error (HTTP {status_code}): {e.response.text[:200]}")
-                    raise RuntimeError(
-                        "Codex authentication failed. Your OAuth token may have expired.\n"
-                        "Run 'codex auth login' to re-authenticate."
-                    ) from e
+                    raise RuntimeError(self._auth_failure_message()) from e
 
                 # Log the actual error message from the API
                 error_detail = e.response.text[:500] if hasattr(e.response, "text") else str(e)
@@ -521,15 +594,8 @@ class CodexLLM(LLMInterface):
             "prompt_cache_key": str(uuid.uuid4()),
         }
 
-        headers = {
-            "Authorization": f"Bearer {self.access_token}",
-            "Content-Type": "application/json",
-            "OpenAI-Account-ID": self.account_id,
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-            "Origin": "https://chatgpt.com",
-        }
-
-        url = f"{self.base_url}/codex/responses"
+        headers = self._build_headers()
+        url = self._responses_url()
 
         # Debug logging for troubleshooting
         logger.debug(f"Codex tool call request: url={url}, model={payload['model']}, tools={len(codex_tools)}")

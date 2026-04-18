@@ -23,6 +23,7 @@ _BANK_INDEX_FACT_TYPES: dict[str, str] = {
     "experience": "expr",
     "observation": "obsv",
 }
+_INVALID_BANK_ID_CHARS_RE = re.compile(r'["\']')
 
 
 def _bank_index_name(ft: str, internal_id: str) -> str:
@@ -101,6 +102,17 @@ class MissionMergeResponse(BaseModel):
     mission: str = Field(description="Merged mission in first person perspective")
 
 
+def validate_bank_id(bank_id: str) -> str:
+    """Validate externally supplied bank IDs before read/write operations."""
+    if not bank_id or not bank_id.strip():
+        raise ValueError("bank_id must not be empty")
+    if bank_id != bank_id.strip():
+        raise ValueError("bank_id must not have leading or trailing whitespace")
+    if _INVALID_BANK_ID_CHARS_RE.search(bank_id):
+        raise ValueError("bank_id must not contain quote characters")
+    return bank_id
+
+
 async def get_bank_profile(pool, bank_id: str) -> BankProfile:
     """
     Get bank profile (name, disposition + mission).
@@ -129,6 +141,8 @@ async def get_or_create_bank_profile(pool, bank_id: str) -> tuple[BankProfile, b
         Tuple of (BankProfile, created) where created is True if the bank
         did not exist before this call.
     """
+    validate_bank_id(bank_id)
+
     async with acquire_with_retry(pool) as conn:
         # Try to get existing bank
         row = await conn.fetchrow(

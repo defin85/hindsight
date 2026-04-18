@@ -5174,7 +5174,10 @@ def _register_routes(app: FastAPI):
             from hindsight_api.engine.retain import bank_utils
 
             # Ensure the bank row exists before inserting into webhooks (FK constraint).
-            _, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+            try:
+                _, created = await bank_utils.get_or_create_bank_profile(pool, bank_id)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e)) from e
             if created:
                 await app.state.memory._apply_default_bank_template(bank_id, request_context)
 
