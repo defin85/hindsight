@@ -1,5 +1,6 @@
 import pytest
 
+from hindsight_api.config import clear_config_cache
 from hindsight_api.engine.llm_wrapper import sanitize_llm_output
 
 
@@ -35,3 +36,17 @@ from hindsight_api.engine.llm_wrapper import sanitize_llm_output
 )
 def test_sanitize_llm_output(input_text, expected):
     assert sanitize_llm_output(input_text) == expected
+
+
+def test_llm_provider_from_env_reads_reasoning_effort(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("HINDSIGHT_API_LLM_PROVIDER", "mock")
+    monkeypatch.setenv("HINDSIGHT_API_LLM_MODEL", "mock")
+    monkeypatch.setenv("HINDSIGHT_API_LLM_REASONING_EFFORT", "xhigh")
+
+    try:
+        from hindsight_api.engine.llm_wrapper import LLMProvider
+
+        llm = LLMProvider.from_env()
+        assert llm.reasoning_effort == "xhigh"
+    finally:
+        clear_config_cache()

@@ -20,6 +20,7 @@ def setup_test_env():
         "HINDSIGHT_API_RETAIN_CHUNK_SIZE",
         "HINDSIGHT_API_LLM_PROVIDER",
         "HINDSIGHT_API_LLM_MODEL",
+        "HINDSIGHT_API_LLM_REASONING_EFFORT",
     ]
 
     # Save original values
@@ -97,6 +98,19 @@ def test_valid_retain_config_succeeds():
     config = HindsightConfig.from_env()
     assert config.retain_max_completion_tokens == 64000
     assert config.retain_chunk_size == 3000
+
+
+def test_invalid_llm_reasoning_effort_fails():
+    """Test that unsupported reasoning effort values fail early."""
+    from hindsight_api.config import HindsightConfig
+
+    os.environ["HINDSIGHT_API_LLM_PROVIDER"] = "mock"
+    os.environ["HINDSIGHT_API_LLM_REASONING_EFFORT"] = "turbo"
+
+    with pytest.raises(ValueError) as exc_info:
+        HindsightConfig.from_env()
+
+    assert "Invalid llm_reasoning_effort" in str(exc_info.value)
 
 
 # Note: The BadRequestError wrapping is implemented in fact_extraction.py

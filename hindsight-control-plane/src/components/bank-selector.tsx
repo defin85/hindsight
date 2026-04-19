@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 function BankSelectorInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentBank, setCurrentBank, banks, loadBanks } = useBank();
+  const { currentBank, setCurrentBank, banks, banksError, loadBanks } = useBank();
   const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = React.useState(false);
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
@@ -450,7 +450,21 @@ function BankSelectorInner() {
             <Command>
               {sortedBanks.length > 0 && <CommandInput placeholder="Search memory banks..." />}
               <CommandList>
-                <CommandEmpty>No memory banks yet.</CommandEmpty>
+                <CommandEmpty className="py-4 px-3 text-left">
+                  {banksError ? (
+                    <div className="space-y-2 text-xs leading-relaxed">
+                      <p className="font-medium text-foreground">Unable to load memory banks.</p>
+                      <p className="text-muted-foreground">{banksError.message}</p>
+                      {banksError.dataplane?.url && (
+                        <p className="text-muted-foreground break-all">
+                          Dataplane: <span className="font-mono">{banksError.dataplane.url}</span>
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    "No memory banks yet."
+                  )}
+                </CommandEmpty>
                 <CommandGroup>
                   {sortedBanks.map((bank) => (
                     <CommandItem

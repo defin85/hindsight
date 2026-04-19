@@ -116,6 +116,18 @@ export interface BankTemplateImportResponse {
   dry_run: boolean;
 }
 
+export interface DataplaneHealthStatus {
+  status: string;
+  url: string;
+  error?: string;
+}
+
+export interface ControlPlaneHealth {
+  status: string;
+  service: string;
+  dataplane?: DataplaneHealthStatus;
+}
+
 export class ControlPlaneClient {
   private async fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
     try {
@@ -197,6 +209,18 @@ export class ControlPlaneClient {
    */
   async listBanks() {
     return this.fetchApi<{ banks: any[] }>("/api/banks", { cache: "no-store" as RequestCache });
+  }
+
+  /**
+   * Read control-plane health without triggering user-facing error toasts.
+   * This is used to diagnose dataplane misconfiguration when the bank list fails to load.
+   */
+  async getHealth() {
+    const response = await fetch("/api/health", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Failed to load health status (${response.status})`);
+    }
+    return (await response.json()) as ControlPlaneHealth;
   }
 
   /**

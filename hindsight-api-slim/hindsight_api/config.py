@@ -123,6 +123,7 @@ ENV_DATABASE_SCHEMA = "HINDSIGHT_API_DATABASE_SCHEMA"
 ENV_LLM_PROVIDER = "HINDSIGHT_API_LLM_PROVIDER"
 ENV_LLM_API_KEY = "HINDSIGHT_API_LLM_API_KEY"
 ENV_LLM_MODEL = "HINDSIGHT_API_LLM_MODEL"
+ENV_LLM_REASONING_EFFORT = "HINDSIGHT_API_LLM_REASONING_EFFORT"
 ENV_LLM_BASE_URL = "HINDSIGHT_API_LLM_BASE_URL"
 ENV_LLM_MAX_CONCURRENT = "HINDSIGHT_API_LLM_MAX_CONCURRENT"
 ENV_LLM_MAX_RETRIES = "HINDSIGHT_API_LLM_MAX_RETRIES"
@@ -137,6 +138,7 @@ ENV_LLM_EXTRA_BODY = "HINDSIGHT_API_LLM_EXTRA_BODY"
 DEFAULT_LLM_GROQ_SERVICE_TIER = "auto"  # "on_demand", "flex", or "auto"
 DEFAULT_LLM_OPENAI_SERVICE_TIER = None  # None (default) or "flex" (50% cheaper)
 DEFAULT_LLM_EXTRA_BODY = None  # None = no extra body params; JSON dict merged into OpenAI extra_body
+DEFAULT_LLM_REASONING_EFFORT = "low"
 
 # Per-operation LLM configuration (optional, falls back to global LLM config)
 ENV_RETAIN_LLM_PROVIDER = "HINDSIGHT_API_RETAIN_LLM_PROVIDER"
@@ -744,6 +746,7 @@ class HindsightConfig:
     llm_provider: str
     llm_api_key: str | None
     llm_model: str
+    llm_reasoning_effort: str
     llm_base_url: str | None
     llm_max_concurrent: int
     llm_max_retries: int
@@ -1154,6 +1157,13 @@ class HindsightConfig:
                 f"Invalid text_search_extension: {self.text_search_extension}. Must be one of: {', '.join(valid_text_search)}"
             )
 
+        valid_reasoning_efforts = ("low", "medium", "high", "xhigh")
+        if self.llm_reasoning_effort not in valid_reasoning_efforts:
+            raise ValueError(
+                "Invalid llm_reasoning_effort: "
+                f"{self.llm_reasoning_effort}. Must be one of: {', '.join(valid_reasoning_efforts)}"
+            )
+
         # When LLM provider is "none", force chunks-only mode and disable LLM-dependent features
         if self.llm_provider == "none":
             self.retain_extraction_mode = "chunks"
@@ -1196,6 +1206,7 @@ class HindsightConfig:
             llm_provider=llm_provider,
             llm_api_key=os.getenv(ENV_LLM_API_KEY),
             llm_model=llm_model,
+            llm_reasoning_effort=os.getenv(ENV_LLM_REASONING_EFFORT, DEFAULT_LLM_REASONING_EFFORT).lower(),
             llm_base_url=os.getenv(ENV_LLM_BASE_URL) or None,
             llm_max_concurrent=int(os.getenv(ENV_LLM_MAX_CONCURRENT, str(DEFAULT_LLM_MAX_CONCURRENT))),
             llm_max_retries=int(os.getenv(ENV_LLM_MAX_RETRIES, str(DEFAULT_LLM_MAX_RETRIES))),
@@ -1672,7 +1683,9 @@ class HindsightConfig:
         logger.info(f"Database: {self.database_url} (schema: {self.database_schema})")
         if self.migration_database_url:
             logger.info(f"Migration database: {self.migration_database_url}")
-        logger.info(f"LLM: provider={self.llm_provider}, model={self.llm_model}")
+        logger.info(
+            f"LLM: provider={self.llm_provider}, model={self.llm_model}, reasoning_effort={self.llm_reasoning_effort}"
+        )
         if self.retain_llm_provider or self.retain_llm_model:
             retain_provider = self.retain_llm_provider or self.llm_provider
             retain_model = self.retain_llm_model or self.llm_model

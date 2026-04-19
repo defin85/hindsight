@@ -26,9 +26,11 @@ except ImportError:
 
 from ..config import (
     DEFAULT_LLM_MAX_CONCURRENT,
+    DEFAULT_LLM_REASONING_EFFORT,
     DEFAULT_LLM_TIMEOUT,
     ENV_LLM_GROQ_SERVICE_TIER,
     ENV_LLM_MAX_CONCURRENT,
+    ENV_LLM_REASONING_EFFORT,
     ENV_LLM_TIMEOUT,
 )
 from ..metrics import get_metrics_collector
@@ -763,6 +765,7 @@ class LLMProvider:
             ENV_LLM_EXTRA_BODY,
             ENV_LLM_MODEL,
             ENV_LLM_PROVIDER,
+            ENV_LLM_REASONING_EFFORT,
         )
 
         provider = os.getenv(ENV_LLM_PROVIDER, DEFAULT_LLM_PROVIDER)
@@ -777,6 +780,7 @@ class LLMProvider:
 
         base_url = os.getenv(ENV_LLM_BASE_URL, "")
         model = os.getenv(ENV_LLM_MODEL, DEFAULT_LLM_MODEL)
+        reasoning_effort = os.getenv(ENV_LLM_REASONING_EFFORT, DEFAULT_LLM_REASONING_EFFORT)
         extra_body = json.loads(os.getenv(ENV_LLM_EXTRA_BODY, "null"))
 
         return cls(
@@ -784,7 +788,7 @@ class LLMProvider:
             api_key=api_key,
             base_url=base_url,
             model=model,
-            reasoning_effort="low",
+            reasoning_effort=reasoning_effort,
             extra_body=extra_body,
         )
 

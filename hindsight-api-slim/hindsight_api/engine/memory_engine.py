@@ -478,6 +478,7 @@ class MemoryEngine(MemoryEngineInterface):
             api_key=memory_llm_api_key,
             base_url=memory_llm_base_url,
             model=memory_llm_model,
+            reasoning_effort=config.llm_reasoning_effort,
             extra_body=config.llm_extra_body,
         )
 
@@ -505,6 +506,7 @@ class MemoryEngine(MemoryEngineInterface):
             api_key=retain_api_key,
             base_url=retain_base_url,
             model=retain_model,
+            reasoning_effort=config.llm_reasoning_effort,
             extra_body=config.llm_extra_body,
         )
 
@@ -527,6 +529,7 @@ class MemoryEngine(MemoryEngineInterface):
             api_key=reflect_api_key,
             base_url=reflect_base_url,
             model=reflect_model,
+            reasoning_effort=config.llm_reasoning_effort,
             extra_body=config.llm_extra_body,
         )
 
@@ -549,6 +552,7 @@ class MemoryEngine(MemoryEngineInterface):
             api_key=consolidation_api_key,
             base_url=consolidation_base_url,
             model=consolidation_model,
+            reasoning_effort=config.llm_reasoning_effort,
             extra_body=config.llm_extra_body,
         )
 
