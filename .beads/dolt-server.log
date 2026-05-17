@@ -4,3 +4,4 @@ time="2026-05-17T19:12:02+03:00" level=warning msg="Any user with GRANT FILE pri
 time="2026-05-17T19:12:02+03:00" level=warning msg="Please consider restarting the server with secure_file_priv set to a safe (or non-existent) directory."
 time="2026-05-17T19:12:02+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
 time="2026-05-17T19:12:02+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
+time="2026-05-17T19:12:11+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
