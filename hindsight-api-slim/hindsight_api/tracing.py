@@ -131,6 +131,7 @@ PROVIDER_NAME_MAPPING = {
     "ollama": "ollama",
     "lmstudio": "lmstudio",
     "openai-codex": "openai",
+    "responses-api": "openai",
     "claude-code": "anthropic",
     "mock": "mock",
 }

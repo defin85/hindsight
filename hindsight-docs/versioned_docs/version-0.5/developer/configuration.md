@@ -161,7 +161,7 @@ To switch between backends:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `HINDSIGHT_API_LLM_PROVIDER` | Provider: `openai`, `openai-codex`, `claude-code`, `anthropic`, `gemini`, `groq`, `minimax`, `ollama`, `lmstudio`, `llamacpp`, `vertexai`, `bedrock`, `litellm`, `volcano`, `openrouter`, `none` | `openai` |
+| `HINDSIGHT_API_LLM_PROVIDER` | Provider: `openai`, `responses-api`, `openai-codex`, `claude-code`, `anthropic`, `gemini`, `groq`, `minimax`, `ollama`, `lmstudio`, `llamacpp`, `vertexai`, `bedrock`, `litellm`, `volcano`, `openrouter`, `none` | `openai` |
 | `HINDSIGHT_API_LLM_API_KEY` | API key for LLM provider | - |
 | `HINDSIGHT_API_LLM_MODEL` | Model name | `gpt-5-mini` |
 | `HINDSIGHT_API_LLM_BASE_URL` | Custom LLM endpoint | Provider default |
@@ -226,11 +226,18 @@ export HINDSIGHT_API_LLM_PROVIDER=llamacpp
 # Auto-downloads Gemma 4 E2B (~3.5 GB GGUF) on first run.
 # See "Built-in llama.cpp" section below for all configuration options.
 
-# OpenAI-compatible endpoint
+# OpenAI-compatible chat/completions endpoint
 export HINDSIGHT_API_LLM_PROVIDER=openai
 export HINDSIGHT_API_LLM_BASE_URL=https://your-endpoint.com/v1
 export HINDSIGHT_API_LLM_API_KEY=your-api-key
 export HINDSIGHT_API_LLM_MODEL=your-model-name
+
+# Responses API-compatible endpoint
+export HINDSIGHT_API_LLM_PROVIDER=responses-api
+export HINDSIGHT_API_LLM_BASE_URL=https://your-endpoint.com/v1
+export HINDSIGHT_API_LLM_API_KEY=your-api-key
+export HINDSIGHT_API_LLM_MODEL=your-model-name
+# Hindsight will call {base_url}/responses unless the URL already ends with /responses
 
 # OpenAI Codex (ChatGPT Plus/Pro subscription - uses OAuth, no API key needed)
 export HINDSIGHT_API_LLM_PROVIDER=openai-codex

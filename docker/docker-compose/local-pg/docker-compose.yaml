@@ -4,6 +4,7 @@ services:
   db:
     image: pgvector/pgvector:pg${HINDSIGHT_DB_VERSION:-18}
     restart: unless-stopped
+    shm_size: ${HINDSIGHT_DB_SHM_SIZE:-512m}
     environment:
       POSTGRES_USER: ${HINDSIGHT_DB_USER:-hindsight_user}
       POSTGRES_PASSWORD: ${HINDSIGHT_DB_PASSWORD:?Set HINDSIGHT_DB_PASSWORD in .env}

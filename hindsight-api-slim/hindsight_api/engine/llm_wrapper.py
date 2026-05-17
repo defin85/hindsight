@@ -185,12 +185,22 @@ def create_llm_provider(
         MockLLM,
         NoneLLM,
         OpenAICompatibleLLM,
+        ResponsesAPILLM,
     )
 
     provider_lower = provider.lower()
 
     if provider_lower == "openai-codex":
         return CodexLLM(
+            provider=provider,
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            reasoning_effort=reasoning_effort,
+        )
+
+    elif provider_lower == "responses-api":
+        return ResponsesAPILLM(
             provider=provider,
             api_key=api_key,
             base_url=base_url,
@@ -358,6 +368,7 @@ class LLMProvider:
             "llamacpp",
             "vertexai",
             "openai-codex",
+            "responses-api",
             "claude-code",
             "mock",
             "none",
@@ -382,6 +393,8 @@ class LLMProvider:
                 self.base_url = "https://api.minimax.io/v1"
             elif self.provider == "openrouter":
                 self.base_url = "https://openrouter.ai/api/v1"
+            elif self.provider == "responses-api":
+                self.base_url = "https://api.openai.com/v1"
 
         # Prepare Vertex AI config (if applicable)
         vertexai_project_id = None

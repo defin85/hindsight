@@ -61,6 +61,10 @@ in `.env`.
 The container reaches the Codex load balancer through
 `host.docker.internal:2455`, so the proxy must already be running on the host.
 
+The PostgreSQL service uses `HINDSIGHT_DB_SHM_SIZE=512m` by default. This keeps
+pgvector HNSW index builds for new banks from failing against Docker's default
+64 MiB `/dev/shm`.
+
 If you want different officially supported TEI models, change:
 
 - `HINDSIGHT_API_EMBEDDINGS_TEI_MODEL_ID`
