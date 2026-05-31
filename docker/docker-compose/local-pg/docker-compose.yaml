@@ -70,7 +70,7 @@ services:
       args:
         INCLUDE_LOCAL_MODELS: "false"
         PRELOAD_ML_MODELS: "false"
-    image: ghcr.io/vectorize-io/hindsight-api:${HINDSIGHT_VERSION:-local-codex-dev}
+    image: ghcr.io/vectorize-io/hindsight-api:${HINDSIGHT_VERSION:-local-openai-codex-dev}
     restart: unless-stopped
     init: true
     stop_grace_period: 30s
@@ -83,21 +83,18 @@ services:
         condition: service_healthy
     ports:
       - "${HINDSIGHT_HOST_API_PORT:-8889}:8888"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
       HINDSIGHT_API_DATABASE_URL: postgresql://${HINDSIGHT_DB_USER:-hindsight_user}:${HINDSIGHT_DB_PASSWORD:?Set HINDSIGHT_DB_PASSWORD in .env}@db:5432/${HINDSIGHT_DB_NAME:-hindsight_db}
       HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-openai-codex}
       HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-gpt-5.4}
       HINDSIGHT_API_LLM_REASONING_EFFORT: ${HINDSIGHT_API_LLM_REASONING_EFFORT:-xhigh}
-      HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-http://host.docker.internal:2455/backend-api/codex}
+      HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-https://chatgpt.com/backend-api}
       HINDSIGHT_API_EMBEDDINGS_PROVIDER: tei
       HINDSIGHT_API_EMBEDDINGS_TEI_URL: http://tei-embed:80
       HINDSIGHT_API_RERANKER_PROVIDER: tei
       HINDSIGHT_API_RERANKER_TEI_URL: http://tei-rerank:80
       HINDSIGHT_API_RERANKER_TEI_BATCH_SIZE: ${HINDSIGHT_API_RERANKER_TEI_BATCH_SIZE:-32}
       HINDSIGHT_API_RERANKER_TEI_MAX_CONCURRENT: ${HINDSIGHT_API_RERANKER_TEI_MAX_CONCURRENT:-2}
-      CODEX_LB_API_KEY: ${CODEX_LB_API_KEY:?Set CODEX_LB_API_KEY in .env}
       HINDSIGHT_API_VECTOR_EXTENSION: pgvector
       HINDSIGHT_CP_DATAPLANE_API_URL: http://127.0.0.1:8888
     volumes:

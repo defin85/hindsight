@@ -6,19 +6,18 @@ PostgreSQL container backed by a named Docker volume. It avoids the embedded
 
 The stack is split into four services:
 
-- API: built locally from the current checkout, so Codex LB fixes from this repo
-  are used immediately.
+- API: built locally from the current checkout.
 - Control Plane: runs as a separate container and talks to the API over the
   internal compose network.
 - TEI embeddings: runs `BAAI/bge-base-en-v1.5` on the local GPU.
 - TEI reranker: runs `BAAI/bge-reranker-base` on the local GPU.
 
-The default LLM wiring matches a local Codex CLI setup behind `codex-lb`:
+The default LLM wiring uses Codex/ChatGPT OAuth directly:
 
 - provider: `openai-codex`
 - model: `gpt-5.4`
 - reasoning effort: `xhigh`
-- base URL: `http://host.docker.internal:2455/backend-api/codex`
+- base URL: `https://chatgpt.com/backend-api`
 
 The default TEI wiring uses officially supported Hugging Face models and the
 official Blackwell container image for RTX 50xx:
@@ -36,7 +35,6 @@ cp docker/docker-compose/local-pg/.env.example docker/docker-compose/local-pg/.e
 Edit `docker/docker-compose/local-pg/.env` and set at least:
 
 - `HINDSIGHT_DB_PASSWORD`
-- `CODEX_LB_API_KEY`
 - `HINDSIGHT_CODEX_AUTH_DIR`
 
 `HINDSIGHT_CODEX_AUTH_DIR` must point to the host directory that contains your
@@ -57,9 +55,6 @@ The first start is slower because:
 If your current non-Docker Hindsight is still running on `8889` or `9999`,
 stop it first or change `HINDSIGHT_HOST_API_PORT` / `HINDSIGHT_HOST_CP_PORT`
 in `.env`.
-
-The container reaches the Codex load balancer through
-`host.docker.internal:2455`, so the proxy must already be running on the host.
 
 The PostgreSQL service uses `HINDSIGHT_DB_SHM_SIZE=512m` by default. This keeps
 pgvector HNSW index builds for new banks from failing against Docker's default
@@ -86,7 +81,7 @@ Access:
 
 ## Notes
 
-- This profile keeps the main LLM on `codex-lb` and uses TEI only for
+- This profile keeps the main LLM on Codex/ChatGPT OAuth and uses TEI only for
   embeddings and reranking.
 - The API image is built with `INCLUDE_LOCAL_MODELS=false`, so local
   sentence-transformers weights are not baked into the Hindsight container.
