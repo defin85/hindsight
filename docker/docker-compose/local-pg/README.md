@@ -16,7 +16,7 @@ The default LLM wiring uses Codex/ChatGPT OAuth directly:
 
 - provider: `openai-codex`
 - model: `gpt-5.4`
-- reasoning effort: `xhigh`
+- reasoning effort: `medium`
 - base URL: `https://chatgpt.com/backend-api`
 
 The default TEI wiring uses officially supported Hugging Face models and the
