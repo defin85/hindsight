@@ -1,7 +1,7 @@
 {
   "database": "dolt",
-  "jsonl_export": "issues.jsonl",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_database": "beads_hindsight"
+  "dolt_database": "beads_hindsight",
+  "project_id": "e0088d1c-2362-4f9b-9828-411126f2142d"
 }

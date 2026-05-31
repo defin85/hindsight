@@ -1,8 +1,0 @@
-Starting server with Config HP="127.0.0.1:45765"|T="28800000"|R="false"|L="warning"
-time="2026-05-17T19:12:02+03:00" level=warning msg="secure_file_priv is set to \"\", which is insecure."
-time="2026-05-17T19:12:02+03:00" level=warning msg="Any user with GRANT FILE privileges will be able to read any file which the sql-server process can read."
-time="2026-05-17T19:12:02+03:00" level=warning msg="Please consider restarting the server with secure_file_priv set to a safe (or non-existent) directory."
-time="2026-05-17T19:12:02+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
-time="2026-05-17T19:12:02+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
-time="2026-05-17T19:12:11+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"
-time="2026-05-17T19:12:14+03:00" level=warning msg="Error authenticating user root using: mysql_native_password"

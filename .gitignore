@@ -58,3 +58,8 @@ TASK.md
 # CHANGELOG.md
 
 blog-post*
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
